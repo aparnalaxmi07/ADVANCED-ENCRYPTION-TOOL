@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced AES-256 Encryption Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        .drag-area {
+            border: 3px dashed rgba(59, 130, 246, 0.5);
+            transition: all 0.3s ease;
+        }
+        .drag-area.active {
+            border-color: rgba(59, 130, 246, 1);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Advanced Encryption Tool</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Securely encrypt and decrypt files using AES-256 military-grade encryption</p>
+        </header>
+
+        <div class="grid md:grid-cols-2 gap-8 mb-12">
+            <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">Encrypt File</h2>
+                </div>
+                <div class="p-6">
+                    <form id="encryptForm">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="encryptPassword">Password</label>
+                            <div class="relative">
+                                <input class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       type="password" id="encryptPassword" placeholder="Enter strong password" required>
+                                <button type="button" class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 toggle-password">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Minimum 8 characters recommended</p>
+                        </div>
+                        
+                        <div id="encryptDragArea" class="drag-area rounded-lg mb-4 text-center p-8 cursor-pointer">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/034a4d61-a13b-4ed6-837d-cc3365c02876.png" alt="Upload file icon - illustration of a document with upward arrow" class="mx-auto mb-3 w-16 opacity-70" />
+                            <p class="text-gray-500">Drag & drop file here or click to browse</p>
+                            <span class="text-blue-600 text-sm font-medium">Select File</span>
+                            <input type="file" id="encryptFile" class="hidden">
+                        </div>
+                        
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="storePassword" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="storePassword" class="ml-2 block text-sm text-gray-700">Store password in session (temporary)</label>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15l8-8m0 0l-8-8m8 8h-16" />
+                            </svg>
+                            Encrypt File
+                        </button>
+                    </form>
+                    
+                    <div id="encryptStatus" class="mt-4 hidden">
+                        <div class="flex items-center mb-2">
+                            <div class="w-4 h-4 rounded-full bg-blue-600 animate-pulse mr-2"></div>
+                            <span class="text-sm font-medium text-gray-700">Processing...</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="encryptProgress" class="progress-bar bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">Decrypt File</h2>
+                </div>
+                <div class="p-6">
+                    <form id="decryptForm">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="decryptPassword">Password</label>
+                            <div class="relative">
+                                <input class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       type="password" id="decryptPassword" placeholder="Enter password used for encryption" required>
+                                <button type="button" class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 toggle-password">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="decryptDragArea" class="drag-area rounded-lg mb-4 text-center p-8 cursor-pointer">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/752d03fb-e882-4c82-8f38-7b854c4d6391.png" alt="Upload file icon - illustration of a locked document with download arrow" class="mx-auto mb-3 w-16 opacity-70" />
+                            <p class="text-gray-500">Drag & drop encrypted file here or click to browse</p>
+                            <span class="text-blue-600 text-sm font-medium">Select File</span>
+                            <input type="file" id="decryptFile" class="hidden">
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Decrypt File
+                        </button>
+                    </form>
+                    
+                    <div id="decryptStatus" class="mt-4 hidden">
+                        <div class="flex items-center mb-2">
+                            <div class="w-4 h-4 rounded-full bg-green-600 animate-pulse mr-2"></div>
+                            <span class="text-sm font-medium text-gray-700">Processing...</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="decryptProgress" class="progress-bar bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">File History</h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operation</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody" class="bg-white divide-y divide-gray-200">
+                            <!-- History items will be added here dynamically -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No history available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">About AES-256 Encryption</h2>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start mb-6">
+                    <div class="flex-shrink-0 bg-blue-100 p-3 rounded-lg mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-800 mb-1">Military-Grade Security</h3>
+                        <p class="text-gray-600">AES-256 is the gold standard in symmetric encryption, approved by the NSA for top-secret information. Each operation uses a unique initialization vector for maximum security.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 bg-blue-100 p-3 rounded-lg mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-800 mb-1">How It Works</h3>
+                        <p class="text-gray-600">Your file is split into blocks and transformed through 14 rounds of substitution, transposition, and mixing operations using the provided password and a cryptographically secure random salt.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session storage for password and history
+        let sessionPasswords = JSON.parse(sessionStorage.getItem('encryptionPasswords') || '{}');
+        let fileHistory = JSON.parse(localStorage.getItem('encryptionHistory') || '[]');
+        
+        // Initialize drag and drop areas
+        const setupDragAndDrop = (dragAreaId, inputId) => {
+            const dragArea = document.getElementById(dragAreaId);
+            const inputFile = document.getElementById(inputId);
+
+            dragArea.addEventListener('click', () => inputFile.click());
+            
+            dragArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dragArea.classList.add('active');
+            });
+            
+            dragArea.addEventListener('dragleave', () => {
+                dragArea.classList.remove('active');
+            });
+            
+            dragArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragArea.classList.remove('active');
+                if (e.dataTransfer.files.length) {
+                    inputFile.files = e.dataTransfer.files;
+                    updateFileNameDisplay(dragArea, e.dataTransfer.files[0].name);
+                }
+            });
+            
+            inputFile.addEventListener('change', () => {
+                if (inputFile.files.length) {
+                    updateFileNameDisplay(dragArea, inputFile.files[0].name);
+                }
+            });
+        };
+        
+        const updateFileNameDisplay = (dragArea, fileName) => {
+            const icon = dragArea.querySelector('img');
+            const text = dragArea.querySelector('p');
+            const button = dragArea.querySelector('span');
+            
+            icon.src = "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/0b40aa6b-8e42-44ec-906d-8c40208f9dd0.png";
+            icon.alt = "File selected icon - document with checkmark";
+            text.textContent = fileName;
+            text.classList.remove('text-gray-500');
+            text.classList.add('text-gray-800', 'font-medium');
+            button.textContent = "Change File";
+        };
+        
+        // Toggle password visibility
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const input = e.target.closest('.relative').querySelector('input');
+                const icon = e.target.querySelector('svg') || e.target;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />`;
+                } else {
+                    input.type = 'password';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+                }
+            });
+        });
+        
+        // Setup forms
+        setupDragAndDrop('encryptDragArea', 'encryptFile');
+        setupDragAndDrop('decryptDragArea', 'decryptFile');
+        
+        // AES-256 Encryption
+        const encryptFile = (file, password) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const fileContent = e.target.result;
+                        const salt = CryptoJS.lib.WordArray.random(128/8);
+                        const key = CryptoJS.PBKDF2(password, salt, {
+                            keySize: 256/32,
+                            iterations: 1000
+                        });
+                        
+                        const iv = CryptoJS.lib.WordArray.random(128/8);
+                        const encrypted = CryptoJS.AES.encrypt(fileContent, key, {
+                            iv: iv,
+                            padding: CryptoJS.pad.Pkcs7,
+                            mode: CryptoJS.mode.CBC
+                        });
+                        
+                        // Combine salt, iv, and ciphertext in a single output
+                        const result = {
+                            salt: salt.toString(),
+                            iv: iv.toString(),
+                            ciphertext: encrypted.toString(),
+                            filename: file.name,
+                            type: file.type,
+                            size: file.size
+                        };
+                        
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        };
+        
+        // AES-256 Decryption
+        const decryptFile = (file, password) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        const salt = CryptoJS.enc.Hex.parse(data.salt);
+                        const iv = CryptoJS.enc.Hex.parse(data.iv);
+                        
+                        const key = CryptoJS.PBKDF2(password, salt, {
+                            keySize: 256/32,
+                            iterations: 1000
+                        });
+                        
+                        const decrypted = CryptoJS.AES.decrypt(data.ciphertext, key, {
+                            iv: iv,
+                            padding: CryptoJS.pad.Pkcs7,
+                            mode: CryptoJS.mode.CBC
+                        });
+                        
+                        // Convert back to original format
+                        const decryptedContent = decrypted.toString(CryptoJS.enc.Utf8);
+                        
+                        // Extract original filename (remove .encrypted if present)
+                        let originalFilename = data.filename;
+                        if (originalFilename.endsWith('.encrypted')) {
+                            originalFilename = originalFilename.substring(0, originalFilename.length - 10);
+                        }
+                        
+                        resolve({
+                            content: decryptedContent,
+                            filename: originalFilename,
+                            type: data.type
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        };
+        
+        // Handle encryption form submission
+        document.getElementById('encryptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('encryptPassword').value;
+            const fileInput = document.getElementById('encryptFile');
+            const storePassword = document.getElementById('storePassword').checked;
+            
+            if (!fileInput.files.length) {
+                alert('Please select a file to encrypt');
+                return;
+            }
+            
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const encryptStatus = document.getElementById('encryptStatus');
+            const encryptProgress = document.getElementById('encryptProgress');
+            
+            encryptStatus.classList.remove('hidden');
+            encryptProgress.style.width = '30%';
+            
+            try {
+                // Simulate processing time for large files
+                if (file.size > 1024 * 1024) { // Larger than 1MB
+                    for (let i = 30; i <= 90; i += 10) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        encryptProgress.style.width = `${i}%`;
+                    }
+                }
+                
+                const result = await encryptFile(file, password);
+                encryptProgress.style.width = '95%';
+
+                // Add metadata to help with decryption
+                result.originalType = file.type;
+                
+                // Store password in session if requested
+                if (storePassword) {
+                    sessionPasswords[file.name + '.encrypted'] = password;
+                    sessionStorage.setItem('encryptionPasswords', JSON.stringify(sessionPasswords));
+                }
+                
+                // Create download link
+                const encryptedData = JSON.stringify(result);
+                const blob = new Blob([encryptedData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name + '.encrypted';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Add to history
+                addToHistory('encrypt', file.name + '.encrypted', new Date(), 'Completed');
+                
+                encryptProgress.style.width = '100%';
+                setTimeout(() => {
+                    encryptStatus.classList.add('hidden');
+                    encryptProgress.style.width = '0%';
+                }, 500);
+                
+            } catch (error) {
+                encryptStatus.classList.add('hidden');
+                console.error('Encryption failed:', error);
+                alert('Encryption failed. Please try again.');
+            }
+        });
+        
+        // Handle decryption form submission
+        document.getElementById('decryptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('decryptPassword').value;
+            const fileInput = document.getElementById('decryptFile');
+            
+            if (!fileInput.files.length) {
+                alert('Please select a file to decrypt');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const decryptStatus = document.getElementById('decryptStatus');
+            const decryptProgress = document.getElementById('decryptProgress');
+            
+            decryptStatus.classList.remove('hidden');
+            decryptProgress.style.width = '30%';
+            
+            try {
+                // Check session storage for password
+                if (!password && sessionPasswords[file.name.replace('.encrypted', '')]) {
+                    document.getElementById('decryptPassword').value = sessionPasswords[file.name.replace('.encrypted', '')];
+                }
+                
+                // Simulate processing time for large files
+                if (file.size > 1024 * 1024) { // Larger than 1MB
+                    for (let i = 30; i <= 90; i += 10) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        decryptProgress.style.width = `${i}%`;
+                    }
+                }
+                
+                const result = await decryptFile(file, password);
+                decryptProgress.style.width = '95%';
+                
+                // Create download link
+                const content = atob(result.content.split(',')[1]);
+                const blob = new Blob([content], { type: result.originalType || result.type });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Add to history
+                addToHistory('decrypt', result.filename, new Date(), 'Completed');
+                
+                decryptProgress.style.width = '100%';
+                setTimeout(() => {
+                    decryptStatus.classList.add('hidden');
+                    decryptProgress.style.width = '0%';
+                }, 500);
+                
+            } catch (error) {
+                decryptStatus.classList.add('hidden');
+                console.error('Decryption failed:', error);
+                alert('Decryption failed. Incorrect password or corrupted file.');
+            }
+        });
+        
+        // Add operation to history
+        const addToHistory = (operation, filename, date, status) => {
+            const historyItem = {
+                operation: operation,
+                filename: filename,
+                date: date.toLocaleString(),
+                status: status
+            };
+            
+            fileHistory.unshift(historyItem);
+            if (fileHistory.length > 5) {
+                fileHistory.pop();
+            }
+            
+            localStorage.setItem('encryptionHistory', JSON.stringify(fileHistory));
+            updateHistoryUI();
+        };
+        
+        // Update history table
+        const updateHistoryUI = () => {
+            const historyBody = document.getElementById('historyBody');
+            
+            if (fileHistory.length === 0) {
+                historyBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No history available</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            historyBody.innerHTML = fileHistory.map(item => {
+                const operationClass = item.operation === 'encrypt' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                const statusClass = item.status === 'Completed' ? 'text-green-600' : 'text-yellow-600';
+                
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${operationClass}">
+                                ${item.operation.toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${item.filename}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${statusClass} font-medium">${item.status}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-blue-600 hover:text-blue-900">View</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+        
+        // Initialize
+        updateHistoryUI();
+    </script>
+</body>
+</html>
+
